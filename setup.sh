@@ -89,6 +89,7 @@ ok "Using Python: $PYTHON ($(${PYTHON} --version 2>&1))"
 # ── 3. Virtual environment ────────────────────────────────────────────────────
 if [[ ! -x "${VENV_DIR}/bin/python3" ]]; then
     log "Creating venv at ${VENV_DIR}..."
+    mkdir -p "$VENV_DIR"
     "$PYTHON" -m venv "$VENV_DIR"
     ok "Venv created."
 else
