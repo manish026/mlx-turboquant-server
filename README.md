@@ -56,7 +56,7 @@ curl http://<your-mac-ip>:8080/v1/chat/completions \
 
 | Variable | Default | Description |
 |---|---|---|
-| `MLX_MODEL_DIR` | `~/.lmstudio/models/<repo>` | Override model storage path |
+| `MLX_MODEL_DIR` | `~/.cache/mlx-models/<repo>` | Override model storage path |
 | `MLX_VENV_DIR` | `~/.mlx-env` | Python venv path |
 | `MLX_PORT` | `8080` | Server port |
 | `HF_TOKEN` | — | HuggingFace token for gated models |

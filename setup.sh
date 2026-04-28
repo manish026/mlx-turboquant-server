@@ -20,7 +20,7 @@ set -euo pipefail
 DEFAULT_MODEL_REPO="mlx-community/Qwen3.6-35B-A3B-4bit"
 MODEL_REPO="${1:-$DEFAULT_MODEL_REPO}"
 MODEL_NAME="${MODEL_REPO##*/}"                                  # e.g. Qwen3.6-35B-A3B-4bit
-MODEL_DIR="${MLX_MODEL_DIR:-${HOME}/.lmstudio/models/${MODEL_REPO}}"
+MODEL_DIR="${MLX_MODEL_DIR:-${HOME}/.cache/mlx-models/${MODEL_REPO}}"
 VENV_DIR="${MLX_VENV_DIR:-${HOME}/.mlx-env}"
 PORT="${MLX_PORT:-8080}"
 MAX_TOKENS=32768
