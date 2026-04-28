@@ -25,13 +25,16 @@ git clone https://github.com/manish026/mlx-turboquant-server.git
 cd mlx-turboquant-server
 chmod +x setup.sh
 
-# Run with default model (Qwen3.6-35B-A3B-4bit)
+# Run with default model (Qwen3.6-35B-A3B-4bit, auto-downloaded)
 ./setup.sh
 
-# Run with any MLX model from HuggingFace
+# Run with any MLX model from HuggingFace (auto-downloaded)
 ./setup.sh mlx-community/Qwen3-8B-Instruct-4bit
 ./setup.sh mlx-community/Mistral-7B-Instruct-v0.3-4bit
 ./setup.sh mlx-community/Llama-3.2-3B-Instruct-4bit
+
+# Already have a model on disk? Drag and drop the folder into Terminal:
+./setup.sh /path/to/your/model
 ```
 
 On first run it will install everything and download the model. Subsequent runs start the server immediately.

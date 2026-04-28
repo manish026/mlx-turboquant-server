@@ -18,9 +18,32 @@ set -euo pipefail
 
 # ── Config ───────────────────────────────────────────────────────────────────
 DEFAULT_MODEL_REPO="mlx-community/Qwen3.6-35B-A3B-4bit"
-MODEL_REPO="${1:-$DEFAULT_MODEL_REPO}"
-MODEL_NAME="${MODEL_REPO##*/}"                                  # e.g. Qwen3.6-35B-A3B-4bit
-MODEL_DIR="${MLX_MODEL_DIR:-${HOME}/.cache/mlx-models/${MODEL_REPO}}"
+
+# Accept drag-and-drop local path OR a HuggingFace repo ID
+# Drag-and-drop from Finder pastes the full path — strip any trailing slash/space
+ARG="${1:-}"
+ARG="${ARG%/}"           # strip trailing slash
+ARG="${ARG## }"          # strip leading space (drag-and-drop sometimes adds one)
+ARG="${ARG%% }"          # strip trailing space
+
+if [[ -z "$ARG" ]]; then
+    # No argument — use default HF repo
+    MODEL_REPO="$DEFAULT_MODEL_REPO"
+    MODEL_DIR="${MLX_MODEL_DIR:-${HOME}/.cache/mlx-models/${MODEL_REPO}}"
+    LOCAL_MODEL=false
+elif [[ "$ARG" == /* || "$ARG" == ~* || "$ARG" == ./* ]]; then
+    # Looks like a local path (drag-and-drop or absolute path)
+    MODEL_DIR="${MLX_MODEL_DIR:-${ARG/#\~/$HOME}}"   # expand ~ if present
+    MODEL_REPO="${MODEL_DIR##*/}"                     # use folder name as model name
+    LOCAL_MODEL=true
+else
+    # HuggingFace repo ID e.g. mlx-community/Qwen3-8B-4bit
+    MODEL_REPO="$ARG"
+    MODEL_DIR="${MLX_MODEL_DIR:-${HOME}/.cache/mlx-models/${MODEL_REPO}}"
+    LOCAL_MODEL=false
+fi
+
+MODEL_NAME="${MODEL_REPO##*/}"                        # e.g. Qwen3.6-35B-A3B-4bit
 VENV_DIR="${MLX_VENV_DIR:-${HOME}/.mlx-env}"
 PORT="${MLX_PORT:-8080}"
 MAX_TOKENS=32768
@@ -243,11 +266,12 @@ else
 fi
 
 # ── 8. Download model ─────────────────────────────────────────────────────────
-if [[ ! -f "${MODEL_DIR}/config.json" ]]; then
-    log "Downloading model ${MODEL_REPO} to ${MODEL_DIR} (~18 GB, this will take a while)..."
+if [[ "$LOCAL_MODEL" == true ]]; then
+    [[ -f "${MODEL_DIR}/config.json" ]] || die "No config.json found at ${MODEL_DIR} — is this a valid MLX model folder?"
+    ok "Using local model at ${MODEL_DIR}."
+elif [[ ! -f "${MODEL_DIR}/config.json" ]]; then
+    log "Downloading model ${MODEL_REPO} to ${MODEL_DIR} (this may take a while)..."
     mkdir -p "$(dirname "$MODEL_DIR")"
-    HF_ARGS=""
-    [[ -n "${HF_TOKEN:-}" ]] && HF_ARGS="--token ${HF_TOKEN}"
     "$PY" -c "
 from huggingface_hub import snapshot_download
 import os
