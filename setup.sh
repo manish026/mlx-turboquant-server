@@ -225,10 +225,12 @@ if [[ "$MODEL_REPO" == *"Qwen3"* ]]; then
 fi
 
 LOCAL_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "<your-ip>")
+LOG_FILE="${SCRIPT_DIR}/server.log"
 
 print ""
 ok "Model:  ${MODEL_REPO}"
 ok "Server: http://${LOCAL_IP}:${PORT}"
+ok "Log:    ${LOG_FILE}  (tail -f ${LOG_FILE})"
 print ""
 
 while true; do
@@ -243,9 +245,9 @@ while true; do
         --prefill-step-size 2048 \
         --decode-concurrency 2 --prompt-concurrency 1 \
         --chat-template-args "$CHAT_TEMPLATE_ARGS" \
-        --log-level INFO
+        --log-level INFO 2>&1 | tee -a "$LOG_FILE"
 
-    EXIT_CODE=$?
+    EXIT_CODE=${pipestatus[1]}
     print "[$(date '+%Y-%m-%d %H:%M:%S')] Server exited (code ${EXIT_CODE}). Restarting in 3s..."
     sleep 3
 done
