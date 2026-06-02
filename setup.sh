@@ -245,6 +245,7 @@ while true; do
         --host     0.0.0.0 \
         --port     "$PORT" \
         --max-tokens "$MAX_TOKENS" \
+        --max-num-seqs 1 \
         --enable-prefix-cache \
         --kv-cache-turboquant \
         --kv-cache-turboquant-bits 3 \
