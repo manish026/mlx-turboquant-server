@@ -249,7 +249,7 @@ while true; do
         --enable-prefix-cache \
         --kv-cache-turboquant \
         --kv-cache-turboquant-bits 3 \
-        --prefill-step-size 2048 \
+        --prefill-step-size 4096 \
         --gpu-memory-utilization 0.75 \
         --no-mllm \
         --log-level INFO \
