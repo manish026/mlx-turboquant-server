@@ -247,7 +247,7 @@ while true; do
         --host     0.0.0.0 \
         --port     "$PORT" \
         --max-tokens "$MAX_TOKENS" \
-        --prompt-cache-size 2 \
+        --prompt-cache-size 5 \
         --temp     0.1 \
         --prefill-step-size 2048 \
         --decode-concurrency 2 --prompt-concurrency 1 \
