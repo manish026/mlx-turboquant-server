@@ -255,7 +255,7 @@ while true; do
         --port     "$PORT" \
         --max-tokens "$MAX_TOKENS" \
         --max-num-seqs 2 \
-        --chunked-prefill-tokens 1024 \
+        --chunked-prefill-tokens 4096 \
         --enable-prefix-cache \
         --cache-memory-mb 5000 \
         --kv-cache-quantization \
