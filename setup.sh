@@ -218,6 +218,13 @@ fi
 
 export HF_HUB_OFFLINE=1
 
+# Free the port if something is already using it
+if lsof -ti :"$PORT" &>/dev/null; then
+    warn "Port ${PORT} in use — killing existing process..."
+    lsof -ti :"$PORT" | xargs kill -9 2>/dev/null
+    sleep 1
+fi
+
 # Auto-detect thinking mode — only Qwen3 models support enable_thinking
 CHAT_TEMPLATE_ARGS="{}"
 if [[ "$MODEL_REPO" == *"Qwen3"* ]]; then
