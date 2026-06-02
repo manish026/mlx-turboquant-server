@@ -100,10 +100,11 @@ PY="${VENV_DIR}/bin/python3"
 PIP="${VENV_DIR}/bin/pip3"
 
 # ── 4. Core Python packages ───────────────────────────────────────────────────
-log "Installing core packages (mlx-lm==${MLX_LM_VERSION}, transformers, huggingface_hub, regex)..."
+log "Installing core packages (mlx-lm, rapid-mlx, transformers, huggingface_hub, regex)..."
 "$PIP" install --quiet --upgrade pip
 "$PIP" install --quiet \
     "mlx-lm==${MLX_LM_VERSION}" \
+    "rapid-mlx" \
     "transformers>=4.45.0" \
     "huggingface_hub>=0.24.0" \
     "regex"
@@ -213,10 +214,8 @@ else
 fi
 
 # ── 9. Launch server ──────────────────────────────────────────────────────────
-# NOTE: prompt cache memory is controlled solely by --prompt-cache-size.
-#       --prefill-step-size 2048 is safe on M4 Max 36 GB; 4096 causes OOM.
-
-export HF_HUB_OFFLINE=1
+RAPID_MLX="${VENV_DIR}/bin/rapid-mlx"
+[[ -x "$RAPID_MLX" ]] || die "rapid-mlx not found in venv — install may have failed."
 
 # Free the port if something is already using it
 if lsof -ti :"$PORT" &>/dev/null; then
@@ -225,10 +224,10 @@ if lsof -ti :"$PORT" &>/dev/null; then
     sleep 1
 fi
 
-# Auto-detect thinking mode — only Qwen3 models support enable_thinking
-CHAT_TEMPLATE_ARGS="{}"
+# Auto-detect MTP support — Qwen3 models ship with MTP head
+EXTRA_FLAGS=""
 if [[ "$MODEL_REPO" == *"Qwen3"* ]]; then
-    CHAT_TEMPLATE_ARGS='{"enable_thinking":false}'
+    EXTRA_FLAGS="--enable-mtp --no-thinking"
 fi
 
 LOCAL_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "<your-ip>")
@@ -241,18 +240,19 @@ ok "Log:    ${LOG_FILE}  (tail -f ${LOG_FILE})"
 print ""
 
 while true; do
-    print "[$(date '+%Y-%m-%d %H:%M:%S')] Starting server — model: ${MODEL_NAME}..."
-    "$PY" "$LAUNCHER" \
-        --model    "$MODEL_DIR" \
+    print "[$(date '+%Y-%m-%d %H:%M:%S')] Starting rapid-mlx server — model: ${MODEL_NAME}..."
+    "$RAPID_MLX" serve "$MODEL_DIR" \
         --host     0.0.0.0 \
         --port     "$PORT" \
         --max-tokens "$MAX_TOKENS" \
-        --prompt-cache-size 5 \
-        --temp     0.1 \
+        --enable-prefix-cache \
+        --kv-cache-turboquant \
+        --kv-cache-turboquant-bits 3 \
         --prefill-step-size 2048 \
-        --decode-concurrency 2 --prompt-concurrency 1 \
-        --chat-template-args "$CHAT_TEMPLATE_ARGS" \
-        --log-level INFO 2>&1 | tee -a "$LOG_FILE"
+        --gpu-memory-utilization 0.75 \
+        --no-mllm \
+        --log-level INFO \
+        ${=EXTRA_FLAGS} 2>&1 | tee -a "$LOG_FILE"
 
     EXIT_CODE=${pipestatus[1]}
     print "[$(date '+%Y-%m-%d %H:%M:%S')] Server exited (code ${EXIT_CODE}). Restarting in 3s..."
