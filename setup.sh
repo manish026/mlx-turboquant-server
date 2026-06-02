@@ -217,11 +217,20 @@ fi
 RAPID_MLX="${VENV_DIR}/bin/rapid-mlx"
 [[ -x "$RAPID_MLX" ]] || die "rapid-mlx not found in venv — install may have failed."
 
-# Free the port if something is already using it
+# Free the port — SIGTERM first so rapid-mlx can save prefix cache to disk,
+# fall back to SIGKILL only if it doesn't exit within 10 s.
 if lsof -ti :"$PORT" &>/dev/null; then
-    warn "Port ${PORT} in use — killing existing process..."
-    lsof -ti :"$PORT" | xargs kill -9 2>/dev/null
-    sleep 1
+    warn "Port ${PORT} in use — sending SIGTERM (saving cache)..."
+    lsof -ti :"$PORT" | xargs kill 2>/dev/null
+    for i in {1..10}; do
+        lsof -ti :"$PORT" &>/dev/null || break
+        sleep 1
+    done
+    if lsof -ti :"$PORT" &>/dev/null; then
+        warn "Still alive after 10 s — forcing SIGKILL..."
+        lsof -ti :"$PORT" | xargs kill -9 2>/dev/null
+        sleep 1
+    fi
 fi
 
 # Auto-detect thinking suppression — Qwen3 models default thinking ON
