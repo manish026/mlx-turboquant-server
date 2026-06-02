@@ -256,6 +256,8 @@ while true; do
         --max-tokens "$MAX_TOKENS" \
         --max-num-seqs 1 \
         --enable-prefix-cache \
+        --cache-memory-mb 5000 \
+        --pin-system-prompt \
         --prefill-step-size 4096 \
         --gpu-memory-utilization 0.75 \
         --no-mllm \
