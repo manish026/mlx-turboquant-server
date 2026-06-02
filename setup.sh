@@ -214,8 +214,9 @@ else
 fi
 
 # ── 9. Launch server ──────────────────────────────────────────────────────────
-RAPID_MLX="${VENV_DIR}/bin/rapid-mlx"
-[[ -x "$RAPID_MLX" ]] || die "rapid-mlx not found in venv — install may have failed."
+# NOTE: mlx-lm is used over rapid-mlx — mlx-lm correctly implements MoE sparse
+#       routing for Qwen3.6-35B-A3B (3B active params), giving ~60 tok/s decode
+#       vs ~25 tok/s on rapid-mlx which treats it as a dense 35B model.
 
 # Free the port if something is already using it
 if lsof -ti :"$PORT" &>/dev/null; then
@@ -224,10 +225,10 @@ if lsof -ti :"$PORT" &>/dev/null; then
     sleep 1
 fi
 
-# Auto-detect MTP support — Qwen3 models ship with MTP head
-EXTRA_FLAGS=""
+# Disable thinking mode for Qwen3 models (enable_thinking=false)
+CHAT_TEMPLATE_ARGS="{}"
 if [[ "$MODEL_REPO" == *"Qwen3"* ]]; then
-    EXTRA_FLAGS="--enable-mtp --no-thinking"
+    CHAT_TEMPLATE_ARGS='{"enable_thinking":false}'
 fi
 
 LOCAL_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "<your-ip>")
@@ -240,20 +241,17 @@ ok "Log:    ${LOG_FILE}  (tail -f ${LOG_FILE})"
 print ""
 
 while true; do
-    print "[$(date '+%Y-%m-%d %H:%M:%S')] Starting rapid-mlx server — model: ${MODEL_NAME}..."
-    "$RAPID_MLX" serve "$MODEL_DIR" \
+    print "[$(date '+%Y-%m-%d %H:%M:%S')] Starting mlx-lm server — model: ${MODEL_NAME}..."
+    "$PY" "$LAUNCHER" \
+        --model    "$MODEL_DIR" \
         --host     0.0.0.0 \
         --port     "$PORT" \
         --max-tokens "$MAX_TOKENS" \
-        --max-num-seqs 1 \
-        --enable-prefix-cache \
-        --kv-cache-turboquant \
-        --kv-cache-turboquant-bits 3 \
+        --prompt-cache-size 5 \
+        --temp     0.6 \
         --prefill-step-size 4096 \
-        --gpu-memory-utilization 0.75 \
-        --no-mllm \
-        --log-level INFO \
-        ${=EXTRA_FLAGS} 2>&1 | tee -a "$LOG_FILE"
+        --chat-template-args "$CHAT_TEMPLATE_ARGS" \
+        --log-level INFO 2>&1 | tee -a "$LOG_FILE"
 
     EXIT_CODE=${pipestatus[1]}
     print "[$(date '+%Y-%m-%d %H:%M:%S')] Server exited (code ${EXIT_CODE}). Restarting in 3s..."
