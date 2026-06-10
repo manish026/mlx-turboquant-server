@@ -121,25 +121,20 @@ else
 fi
 
 # ── 6. Patch mlx_lm server (tool_calls streaming fix) ────────────────────────
-SERVER_PY="${VENV_DIR}/lib/python3.12/site-packages/mlx_lm/server.py"
-# Check for Python 3.11 fallback path
-[[ -f "$SERVER_PY" ]] || SERVER_PY="${VENV_DIR}/lib/python3.11/site-packages/mlx_lm/server.py"
-[[ -f "$SERVER_PY" ]] || die "Cannot find mlx_lm/server.py in venv."
+SERVER_PY=""
+for _p in "${VENV_DIR}/lib/python3."*/site-packages/mlx_lm/server.py; do
+    [[ -f "$_p" ]] && SERVER_PY="$_p" && break
+done
+[[ -n "$SERVER_PY" ]] || die "Cannot find mlx_lm/server.py in venv."
 
 PATCH_SENTINEL="tool_calls intentionally not cleared here"
 if ! grep -q "$PATCH_SENTINEL" "$SERVER_PY"; then
     log "Applying tool_calls streaming patch to mlx_lm/server.py..."
-    "$PY" - <<'PATCHSCRIPT'
-import re, sys
+    MLX_SERVER_PY="$SERVER_PY" "$PY" - <<'PATCHSCRIPT'
+import sys, os
 
-server_py = None
-import glob, os
-venv = os.environ.get("VIRTUAL_ENV", "")
-for p in glob.glob(f"{venv}/lib/python3.*/site-packages/mlx_lm/server.py"):
-    server_py = p
-    break
-
-if not server_py:
+server_py = os.environ.get("MLX_SERVER_PY", "")
+if not server_py or not os.path.isfile(server_py):
     print("ERROR: could not locate server.py", file=sys.stderr)
     sys.exit(1)
 
